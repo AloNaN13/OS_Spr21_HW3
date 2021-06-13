@@ -16,7 +16,7 @@ void enqueue(void *x){
         tail->next = new_node;
     }
     tail = new_node;
-    queue_size++;
+    size_of_queue++;
 }
 
 void* dequeue(){
@@ -29,7 +29,7 @@ void* dequeue(){
         if (head == NULL){
             tail = NULL;
         }
-        queue_size--;
+        size_of_queue--;
         free(temp);
         return result;
     }
