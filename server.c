@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
         int *pclient=malloc(sizeof(int));
         *pclient=connfd;
         pthread_mutex_lock(&mutex_for_queue);   //lock so we can enqueue
+       // printf()
         enqueue((pclient));
         pthread_mutex_unlock(&mutex_for_queue); //realse lock
         pthread_cond_signal(&condition_var);   //send signal that a new request was added to the queue
@@ -97,7 +98,6 @@ int main(int argc, char *argv[])
 }
 
 void *function_for_thread_in_pool(void* args){
-
     while (1){
         int* pclient;
         pthread_mutex_lock(&mutex_for_queue); //lock
@@ -130,6 +130,7 @@ void *function_for_thread_in_pool(void* args){
             pthread_cond_signal(&condition_var_for_full_queue);
             
             Close(*pclient);
+            free(pclient);
             
         }
     }
@@ -137,26 +138,26 @@ void *function_for_thread_in_pool(void* args){
 }
 int handle_for_overload(int connfd, char *alg_to_handle_overload){
     if(!strcmp(alg_to_handle_overload,"block")){
-        //Close(connfd);
+        //Close(connfd);-to tell eden
         pthread_mutex_lock(&mutex_for_curr_workers_num);
         pthread_cond_wait(&condition_var_for_full_queue, &mutex_for_curr_workers_num);//wait for queue to stop being full
         pthread_mutex_unlock(&mutex_for_curr_workers_num);
+        printf("we had a block");
         return 0;
     } else if(!strcmp(alg_to_handle_overload,"dt")){
         Close(connfd);
         return 1;
     }else if(!strcmp(alg_to_handle_overload,"dh")){
+        //tell eden should mutex before
+        pthread_mutex_lock(&mutex_for_queue);
         dequeue();
+        pthread_mutex_unlock(&mutex_for_queue);
         return 0;
     }
     ///bonus
 
-
-
     printf("ERROR_UNDEFINED_ALGO_EXPERT");
     return 0;
-
-
 
 }
 
