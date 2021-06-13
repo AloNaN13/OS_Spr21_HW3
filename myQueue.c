@@ -4,7 +4,7 @@ node_t *head = NULL;
 node_t *tail = NULL;
 
 
-void enqueue(void *x){
+void enqueue(int *x){
     node_t *new_node = (node_t *)malloc(sizeof(node_t));
     new_node->client_fd = x;
     new_node->next = NULL;
@@ -19,11 +19,11 @@ void enqueue(void *x){
     size_of_queue++;
 }
 
-void* dequeue(){
+int* dequeue(){
     if (head == NULL){
         return NULL;
     }else{
-        void *result = head->client_fd;
+        int *result = head->client_fd;
         node_t *temp = head;
         head = head->next;
         if (head == NULL){
