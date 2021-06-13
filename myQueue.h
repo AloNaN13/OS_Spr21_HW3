@@ -6,11 +6,12 @@
 int size_of_queue;
 struct  node{
     struct  node* next;
-    void *client_fd;
+    int *client_fd;
+    
 };
 typedef  struct  node node_t;
 
-void enqueue(void *object);
-void* dequeue();
+void enqueue(int* object);
+int* dequeue();
 
 #endif

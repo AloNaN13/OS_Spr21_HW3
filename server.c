@@ -77,14 +77,18 @@ int main(int argc, char *argv[])
 	    requestHandle(connfd);
 
 	    Close(connfd);*/
+
+
         if(size_of_queue + cur_working_threads >= max_size_of_queue){
             //overload handle
             if(handle_for_overload(connfd,alg_to_handle_overload)){//if its
                 continue;
             }
         }
+        int *pclient=malloc(sizeof(int));
+        *pclient=connfd;
         pthread_mutex_lock(&mutex_for_queue);   //lock so we can enqueue
-        enqueue((void *)(&connfd));
+        enqueue((pclient));
         pthread_mutex_unlock(&mutex_for_queue); //realse lock
         pthread_cond_signal(&condition_var);   //send signal that a new request was added to the queue
 
@@ -95,7 +99,7 @@ int main(int argc, char *argv[])
 void *function_for_thread_in_pool(void* args){
 
     while (1){
-        void* pclient;
+        int* pclient;
         pthread_mutex_lock(&mutex_for_queue); //lock
         if ((pclient = dequeue()) == NULL){
             //relase lock and put thread to sleep until we add a new request to the queue
@@ -124,8 +128,8 @@ void *function_for_thread_in_pool(void* args){
             //pthread_mutex_unlock(&mutex_for_curr_workers_num);
 
             pthread_cond_signal(&condition_var_for_full_queue);
-            printf("file d is:%d", *((int*)pclient));
-            Close(*((int*)pclient));
+            
+            Close(*pclient);
             
         }
     }
@@ -133,11 +137,11 @@ void *function_for_thread_in_pool(void* args){
 }
 int handle_for_overload(int connfd, char *alg_to_handle_overload){
     if(!strcmp(alg_to_handle_overload,"block")){
-        Close(connfd);
+        //Close(connfd);
         pthread_mutex_lock(&mutex_for_curr_workers_num);
         pthread_cond_wait(&condition_var_for_full_queue, &mutex_for_curr_workers_num);//wait for queue to stop being full
         pthread_mutex_unlock(&mutex_for_curr_workers_num);
-        return 1;
+        return 0;
     } else if(!strcmp(alg_to_handle_overload,"dt")){
         Close(connfd);
         return 1;
