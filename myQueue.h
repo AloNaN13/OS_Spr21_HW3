@@ -3,7 +3,7 @@
 #define MYQUEUE_H_
 
 
-int queue_size=0;
+int size_of_queue;
 struct  node{
     struct  node* next;
     void *client_fd;

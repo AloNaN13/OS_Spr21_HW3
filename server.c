@@ -1,6 +1,6 @@
 #include "segel.h"
 #include "request.h"
-#include "queue.h"
+#include "myQueue.h"
 // 
 // server.c: A very, very simple web server
 //
@@ -13,7 +13,7 @@
 
 // HW3: Parse the new arguments too
 
-void *function_for_thread_in_pool(int*args);
+void *function_for_thread_in_pool(void* args);
 int handle_for_overload(int connfd, char *alg_to_handle_overload);
 int cur_working_threads = 0;
 pthread_mutex_t mutex_for_queue = PTHREAD_MUTEX_INITIALIZER;
@@ -33,6 +33,7 @@ void getargs(int *port, int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+    size_of_queue=0;
     int listenfd, connfd, port, clientlen;
     struct sockaddr_in clientaddr;
 
@@ -47,16 +48,16 @@ int main(int argc, char *argv[])
     //create pool thread
     int size_thread_pool = atoi(argv[2]);//the size of the thread pool
     int max_size_of_queue = atoi(argv[3]);
-    char* alg_for_sched = (argv[4]); //the algorithm that handel full queue
+    char* alg_to_handle_overload = (argv[4]); //the algorithm that handel full queue
     pthread_t pool_threads[size_thread_pool];
 
     //stats_t* worker_thread_stats=(stats_t*)malloc(sizeof(stats_t)*num_of_workers);
 
-    for (int i = 0; i < num_of_workers; i++) {
+    for (int i = 0; i < size_thread_pool; i++) {
         int* args_for_thread_func = (int*)malloc(sizeof(int)*2);//the parameters for function_for_thread_in_pool
         args_for_thread_func[0]=(max_size_of_queue);
         args_for_thread_func[1]=(i);//the special id of the thread
-        pthread_create(&pool_threads[i], NULL, function_for_thread_in_pool,args_for_thread_func);
+        pthread_create(&pool_threads[i], NULL, function_for_thread_in_pool,(void*)args_for_thread_func);
         free(args_for_thread_func);
     }
 
@@ -76,14 +77,14 @@ int main(int argc, char *argv[])
 	    requestHandle(connfd);
 
 	    Close(connfd);*/
-        if(queue_size + cur_working_threads >= queue_max_size){
+        if(size_of_queue + cur_working_threads >= max_size_of_queue){
             //overload handle
-            if(overload_handle(sched_alg,connfd)){//if its
+            if(handle_for_overload(connfd,alg_to_handle_overload)){//if its
                 continue;
             }
         }
         pthread_mutex_lock(&mutex_for_queue);   //lock so we can enqueue
-        enqueue((void *)(connfd));
+        enqueue((void *)(&connfd));
         pthread_mutex_unlock(&mutex_for_queue); //realse lock
         pthread_cond_signal(&condition_var);   //send signal that a new request was added to the queue
 
@@ -91,7 +92,7 @@ int main(int argc, char *argv[])
 
 }
 
-void *function_for_thread_in_pool(int* args){
+void *function_for_thread_in_pool(void* args){
 
     while (1){
         void* pclient;
@@ -101,19 +102,30 @@ void *function_for_thread_in_pool(int* args){
             pthread_cond_wait(&condition_var, &mutex_for_queue);
             pclient = dequeue(); //pop a request to handle
         }
+        cur_working_threads++;
+
+
         pthread_mutex_unlock(&mutex_for_queue); //relase lock
         if (pclient != NULL) {
             //HANDLE CONNECTION
-            pthread_mutex_lock(&mutex_for_curr_workers_num);
-            cur_working_threads++;
-            pthread_mutex_unlock(&mutex_for_curr_workers_num);
-            requestHandle((int)pclient);
-            pthread_mutex_lock(&mutex_for_curr_workers_num);
+            //pthread_mutex_lock(&mutex_for_curr_workers_num);
+            //cur_working_threads++;
+            //pthread_mutex_unlock(&mutex_for_curr_workers_num);
+            requestHandle((*(int*)pclient));
+
+            pthread_mutex_lock(&mutex_for_queue);
             cur_working_threads--;
-            pthread_mutex_unlock(&mutex_for_curr_workers_num);
+            pthread_mutex_unlock(&mutex_for_queue);
+
+
+
+            //pthread_mutex_lock(&mutex_for_curr_workers_num);
+            //cur_working_threads--;
+            //pthread_mutex_unlock(&mutex_for_curr_workers_num);
 
             pthread_cond_signal(&condition_var_for_full_queue);
-            Close((int)pclient);
+            printf("file d is:%d", *((int*)pclient));
+            Close(*((int*)pclient));
             
         }
     }
@@ -126,10 +138,10 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload){
         pthread_cond_wait(&condition_var_for_full_queue, &mutex_for_curr_workers_num);//wait for queue to stop being full
         pthread_mutex_unlock(&mutex_for_curr_workers_num);
         return 1;
-    } else if(!strcmp(sched_alg,"dt")){
+    } else if(!strcmp(alg_to_handle_overload,"dt")){
         Close(connfd);
         return 1;
-    }else if(!strcmp(sched_alg,"dh")){
+    }else if(!strcmp(alg_to_handle_overload,"dh")){
         dequeue();
         return 0;
     }
