@@ -150,7 +150,13 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload){
     }else if(!strcmp(alg_to_handle_overload,"dh")){
         //tell eden should mutex before
         pthread_mutex_lock(&mutex_for_queue);
-        dequeue();
+        int* fd_to_close=dequeue();
+        /*if(fd_to_close!=NULL){
+            close(*fd_to_close);
+            free(fd_to_close);
+        }*/
+        close(*fd_to_close);
+        free(fd_to_close);
         pthread_mutex_unlock(&mutex_for_queue);
         return 0;
     }
