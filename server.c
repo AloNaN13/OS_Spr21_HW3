@@ -1,6 +1,6 @@
 #include "segel.h"
 #include "request.h"
-#include "myQueue.h"
+
 // 
 // server.c: A very, very simple web server
 //
@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
     char* alg_to_handle_overload = (argv[4]); //the algorithm that handel full queue
     pthread_t pool_threads[size_thread_pool];
 
-    //stats_t* worker_thread_stats=(stats_t*)malloc(sizeof(stats_t)*num_of_workers);
+    //stats_t* worker_thread_stats=(stats_t*)malloc(sizeof(stats_t)*num_of_workers); - DELETE
+    // thread_stats_t* pool_threads_stats = (thread_stats_t*)malloc(size_thread_pool * sizeof(thread_stats_t)); - NEEDED?
 
     for (int i = 0; i < size_thread_pool; i++) {
         int* args_for_thread_func = (int*)malloc(sizeof(int)*2);//the parameters for function_for_thread_in_pool
@@ -66,6 +67,10 @@ int main(int argc, char *argv[])
     while (1) {
 	    clientlen = sizeof(clientaddr);
 	    connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *) &clientlen);
+
+	    // assign arrival time
+        struct timeval arrival_time = gettimeofday();
+
 
 	// 
 	// HW3: In general, don't handle the request in the main thread.
@@ -89,8 +94,8 @@ int main(int argc, char *argv[])
         *pclient=connfd;
         pthread_mutex_lock(&mutex_for_queue);   //lock so we can enqueue
        // printf()
-        enqueue((pclient));
-        pthread_mutex_unlock(&mutex_for_queue); //realse lock
+        enqueue(pclient, arrival_time);
+        pthread_mutex_unlock(&mutex_for_queue); //release lock
         pthread_cond_signal(&condition_var);   //send signal that a new request was added to the queue
 
     }
@@ -98,14 +103,28 @@ int main(int argc, char *argv[])
 }
 
 void *function_for_thread_in_pool(void* args){
+
+    //size?
+    thread_stats_t* work_thread_stats = (thread_stats_t*)malloc(sizeof(thread_stats_t));
+    work_thread_stats->thread_id = args[1];
+    work_thread_stats->count_req = 0;
+    work_thread_stats->static_req = 0;
+    work_thread_stats->dynamic_req = 0;
+
     while (1){
         int* pclient;
+        struct timeval * arrival_time;
         pthread_mutex_lock(&mutex_for_queue); //lock
         if ((pclient = dequeue()) == NULL){
-            //relase lock and put thread to sleep until we add a new request to the queue
+            //release lock and put thread to sleep until we add a new request to the queue
             pthread_cond_wait(&condition_var, &mutex_for_queue);
-            pclient = dequeue(); //pop a request to handle
+            pclient = dequeue(arrival_time); //pop a request to handle
         }
+
+        struct ending_time = gettimeofday();
+        struct timeval * dispatch_time;
+        void timersub(arrival_time, &ending_time, dispatch_time);
+
         cur_working_threads++;
 
 
@@ -115,7 +134,7 @@ void *function_for_thread_in_pool(void* args){
             //pthread_mutex_lock(&mutex_for_curr_workers_num);
             //cur_working_threads++;
             //pthread_mutex_unlock(&mutex_for_curr_workers_num);
-            requestHandle((*(int*)pclient));
+            requestHandle((*(int*)pclient), work_thread_stats, *arrival_time, *dispatch_time);
 
             pthread_mutex_lock(&mutex_for_queue);
             cur_working_threads--;
