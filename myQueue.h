@@ -3,7 +3,7 @@
 #define MYQUEUE_H_
 
 // struct for keeping statistics for threads
-struct threat_stats{
+struct thread_stats{
     int thread_id;
     int count_req;
     int static_req;
@@ -22,7 +22,7 @@ struct  node{
 };
 typedef  struct  node node_t;
 
-void enqueue(int *obj, struct timeval arrival_time);
+void enqueue(int *obj, struct timeval* arrival_time);
 int* dequeue(struct timeval *arrival_time);
 
 #endif

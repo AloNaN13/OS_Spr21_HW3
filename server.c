@@ -13,8 +13,8 @@
 
 // HW3: Parse the new arguments too
 
-void *function_for_thread_in_pool(void* args);
-int handle_for_overload(int connfd, char *alg_to_handle_overload);
+void *function_for_thread_in_pool(thread_stats_t* work_thread_stats);
+int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval* arrival_time);
 int cur_working_threads = 0;
 pthread_mutex_t mutex_for_queue = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condition_var = PTHREAD_COND_INITIALIZER;
@@ -55,11 +55,13 @@ int main(int argc, char *argv[])
     // thread_stats_t* pool_threads_stats = (thread_stats_t*)malloc(size_thread_pool * sizeof(thread_stats_t)); - NEEDED?
 
     for (int i = 0; i < size_thread_pool; i++) {
-        int* args_for_thread_func = (int*)malloc(sizeof(int)*2);//the parameters for function_for_thread_in_pool
-        args_for_thread_func[0]=(max_size_of_queue);
-        args_for_thread_func[1]=(i);//the special id of the thread
-        pthread_create(&pool_threads[i], NULL, function_for_thread_in_pool,(void*)args_for_thread_func);
-        free(args_for_thread_func);
+        thread_stats_t* work_thread_stats = (thread_stats_t*)malloc(sizeof(thread_stats_t));
+        work_thread_stats->thread_id = i;
+        /*int* args_for_thread_func = (int*)malloc(sizeof(int)*2);//the parameters for function_for_thread_in_pool
+        args_for_thread_func[1]=(max_size_of_queue);
+        args_for_thread_func[0]=i;//the special id of the thread*/
+        pthread_create(&pool_threads[i], NULL, function_for_thread_in_pool,work_thread_stats);
+        //free(args_for_thread_func);
     }
 
 
@@ -69,7 +71,9 @@ int main(int argc, char *argv[])
 	    connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *) &clientlen);
 
 	    // assign arrival time
-        struct timeval arrival_time = gettimeofday();
+        struct timeval* arrival_time=(struct timeval*)malloc(sizeof(struct timeval));
+        gettimeofday(arrival_time,NULL);
+         
 
 
 	// 
@@ -86,7 +90,7 @@ int main(int argc, char *argv[])
 
         if(size_of_queue + cur_working_threads >= max_size_of_queue){
             //overload handle
-            if(handle_for_overload(connfd,alg_to_handle_overload)){//if its
+            if(handle_for_overload(connfd,alg_to_handle_overload,arrival_time)){//if its
                 continue;
             }
         }
@@ -102,28 +106,29 @@ int main(int argc, char *argv[])
 
 }
 
-void *function_for_thread_in_pool(void* args){
+void *function_for_thread_in_pool(thread_stats_t* work_thread_stats){
 
     //size?
-    thread_stats_t* work_thread_stats = (thread_stats_t*)malloc(sizeof(thread_stats_t));
-    work_thread_stats->thread_id = args[1];
+    //thread_stats_t* work_thread_stats = (thread_stats_t*)malloc(sizeof(thread_stats_t));
+    //work_thread_stats->thread_id = *((int*)(args));
+    printf("id of thread is : %d",work_thread_stats->thread_id);
     work_thread_stats->count_req = 0;
     work_thread_stats->static_req = 0;
     work_thread_stats->dynamic_req = 0;
 
     while (1){
         int* pclient;
-        struct timeval * arrival_time;
+        struct timeval * arrival_time=(struct timeval*)malloc(sizeof(struct timeval));
         pthread_mutex_lock(&mutex_for_queue); //lock
-        if ((pclient = dequeue()) == NULL){
+        if ((pclient = dequeue(arrival_time)) == NULL){
             //release lock and put thread to sleep until we add a new request to the queue
             pthread_cond_wait(&condition_var, &mutex_for_queue);
             pclient = dequeue(arrival_time); //pop a request to handle
         }
-
-        struct ending_time = gettimeofday();
-        struct timeval * dispatch_time;
-        void timersub(arrival_time, &ending_time, dispatch_time);
+        struct timeval* ending_time=(struct timeval*)malloc(sizeof(struct timeval));
+        gettimeofday(ending_time,NULL);
+        struct timeval * dispatch_time=(struct timeval*)malloc(sizeof(struct timeval));
+        timersub (ending_time,arrival_time, dispatch_time);
 
         cur_working_threads++;
 
@@ -155,7 +160,7 @@ void *function_for_thread_in_pool(void* args){
     }
 
 }
-int handle_for_overload(int connfd, char *alg_to_handle_overload){
+int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval* arrival_time){
     if(!strcmp(alg_to_handle_overload,"block")){
         //Close(connfd);-to tell eden
         pthread_mutex_lock(&mutex_for_curr_workers_num);
@@ -169,7 +174,7 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload){
     }else if(!strcmp(alg_to_handle_overload,"dh")){
         //tell eden should mutex before
         pthread_mutex_lock(&mutex_for_queue);
-        int* fd_to_close=dequeue();
+        int* fd_to_close=dequeue(arrival_time);
         /*if(fd_to_close!=NULL){
             close(*fd_to_close);
             free(fd_to_close);

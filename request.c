@@ -43,13 +43,13 @@ void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longm
    Rio_writen(fd, buf, strlen(buf));
 
    sprintf(buf, "%sStat-Thread-Id:: %d\r\n", buf, thread_stats->thread_id);
-   Rio_writen(fd, bud, strlen(buf));
+   Rio_writen(fd, buf, strlen(buf));
    sprintf(buf, "%sStat-Thread-Count:: %d\r\n", buf, thread_stats->count_req);
-   Rio_writen(fd, bud, strlen(buf));
+   Rio_writen(fd, buf, strlen(buf));
    sprintf(buf, "%sStat-Thread-Static:: %d\r\n", buf, thread_stats->static_req);
-   Rio_writen(fd, bud, strlen(buf));
+   Rio_writen(fd, buf, strlen(buf));
    sprintf(buf, "%sStat-Thread-Dynamic:: %d\r\n\r\n", buf, thread_stats->dynamic_req);
-   Rio_writen(fd, bud, strlen(buf));
+   Rio_writen(fd, buf, strlen(buf));
 
    // Rio_writens needed?
 
