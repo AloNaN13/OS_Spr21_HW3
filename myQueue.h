@@ -1,6 +1,7 @@
-#include "segel.h"
 #ifndef MYQUEUE_H_
 #define MYQUEUE_H_
+
+#include "segel.h"
 
 // struct for keeping statistics for threads
 struct thread_stats{

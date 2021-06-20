@@ -51,15 +51,14 @@ int main(int argc, char *argv[])
     char* alg_to_handle_overload = (argv[4]); //the algorithm that handel full queue
     pthread_t pool_threads[size_thread_pool];
 
-    //stats_t* worker_thread_stats=(stats_t*)malloc(sizeof(stats_t)*num_of_workers); - DELETE
-    // thread_stats_t* pool_threads_stats = (thread_stats_t*)malloc(size_thread_pool * sizeof(thread_stats_t)); - NEEDED?
+    // thread_stats_t* pool_threads_stats = (thread_stats_t*)malloc(size_thread_pool * sizeof(thread_stats_t)); // looks like we don't need it here
 
     for (int i = 0; i < size_thread_pool; i++) {
         thread_stats_t* work_thread_stats = (thread_stats_t*)malloc(sizeof(thread_stats_t));
         work_thread_stats->thread_id = i;
         /*int* args_for_thread_func = (int*)malloc(sizeof(int)*2);//the parameters for function_for_thread_in_pool
         args_for_thread_func[1]=(max_size_of_queue);
-        args_for_thread_func[0]=i;//the special id of the thread*/
+        args_for_thread_func[0]=i; //the special id of the thread */
         pthread_create(&pool_threads[i], NULL, function_for_thread_in_pool,work_thread_stats);
         //free(args_for_thread_func);
     }
@@ -97,7 +96,6 @@ int main(int argc, char *argv[])
         int *pclient=malloc(sizeof(int));
         *pclient=connfd;
         pthread_mutex_lock(&mutex_for_queue);   //lock so we can enqueue
-       // printf()
         enqueue(pclient, arrival_time);
         pthread_mutex_unlock(&mutex_for_queue); //release lock
         pthread_cond_signal(&condition_var);   //send signal that a new request was added to the queue
@@ -133,7 +131,7 @@ void *function_for_thread_in_pool(thread_stats_t* work_thread_stats){
         cur_working_threads++;
 
 
-        pthread_mutex_unlock(&mutex_for_queue); //relase lock
+        pthread_mutex_unlock(&mutex_for_queue); //release lock
         if (pclient != NULL) {
             //HANDLE CONNECTION
             //pthread_mutex_lock(&mutex_for_curr_workers_num);
@@ -162,7 +160,7 @@ void *function_for_thread_in_pool(thread_stats_t* work_thread_stats){
 }
 int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval* arrival_time){
     if(!strcmp(alg_to_handle_overload,"block")){
-        //Close(connfd);-to tell eden
+        //Close(connfd);
         pthread_mutex_lock(&mutex_for_curr_workers_num);
         pthread_cond_wait(&condition_var_for_full_queue, &mutex_for_curr_workers_num);//wait for queue to stop being full
         pthread_mutex_unlock(&mutex_for_curr_workers_num);
@@ -172,7 +170,6 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval*
         Close(connfd);
         return 1;
     }else if(!strcmp(alg_to_handle_overload,"dh")){
-        //tell eden should mutex before
         pthread_mutex_lock(&mutex_for_queue);
         int* fd_to_close=dequeue(arrival_time);
         /*if(fd_to_close!=NULL){
