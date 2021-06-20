@@ -37,6 +37,11 @@ int* dequeue(struct timeval *arrival_time){
     }
 }
 
+
+/*
+deletes a arandom node of the queue
+*/
+
 int* rand_dequeue(){
     if (head == NULL){
         return NULL;
