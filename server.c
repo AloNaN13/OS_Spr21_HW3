@@ -111,7 +111,7 @@ void *function_for_thread_in_pool(thread_stats_t* work_thread_stats){
     //size?
     //thread_stats_t* work_thread_stats = (thread_stats_t*)malloc(sizeof(thread_stats_t));
     //work_thread_stats->thread_id = *((int*)(args));
-    printf("id of thread is : %d",work_thread_stats->thread_id);
+    
     work_thread_stats->count_req = 0;
     work_thread_stats->static_req = 0;
     work_thread_stats->dynamic_req = 0;
@@ -184,17 +184,19 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval*
         pthread_mutex_unlock(&mutex_for_queue);
         return 0;
     }
-    ///bonus
+   
     else if (!strcmp(alg_to_handle_overload,"rd")){
         pthread_mutex_lock(&mutex_for_queue);
         int* fd_to_close;
         int num_dequeus= size_of_queue/4;
+        printf("size of queue is :%d and mum_deques is : %d , current woriking is : %d\n",size_of_queue, num_dequeus, cur_working_threads);
         for(int j=0;j<num_dequeus;j++){
              fd_to_close=rand_dequeue();
              close(*fd_to_close);
              free(fd_to_close);
         }
         pthread_mutex_unlock(&mutex_for_queue);
+        return 0;
         
     }
     
