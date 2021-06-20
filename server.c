@@ -166,7 +166,7 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval*
         pthread_mutex_lock(&mutex_for_curr_workers_num);
         pthread_cond_wait(&condition_var_for_full_queue, &mutex_for_curr_workers_num);//wait for queue to stop being full
         pthread_mutex_unlock(&mutex_for_curr_workers_num);
-        printf("we had a block");
+        
         return 0;
     } else if(!strcmp(alg_to_handle_overload,"dt")){
         Close(connfd);
@@ -185,6 +185,19 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval*
         return 0;
     }
     ///bonus
+    else if (!strcmp(alg_to_handle_overload,"rd")){
+        pthread_mutex_lock(&mutex_for_queue);
+        int* fd_to_close;
+        int num_dequeus= size_of_queue/4;
+        for(int j=0;j<num_dequeus;j++){
+             fd_to_close=rand_dequeue();
+             close(*fd_to_close);
+             free(fd_to_close);
+        }
+        pthread_mutex_unlock(&mutex_for_queue);
+        
+    }
+    
 
     printf("ERROR_UNDEFINED_ALGO_EXPERT");
     return 0;
