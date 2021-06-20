@@ -187,9 +187,13 @@ int handle_for_overload(int connfd, char *alg_to_handle_overload,struct timeval*
     ///bonus
     else if (!strcmp(alg_to_handle_overload,"rd")){
         pthread_mutex_lock(&mutex_for_queue);
-        int* fd_to_close=rand_dequeue();
-        close(*fd_to_close);
-        free(fd_to_close);
+        int* fd_to_close;
+        int num_dequeus= size_of_queue/4;
+        for(int j=0;j<num_dequeus;j++){
+             fd_to_close=rand_dequeue();
+             close(*fd_to_close);
+             free(fd_to_close);
+        }
         pthread_mutex_unlock(&mutex_for_queue);
         
     }
