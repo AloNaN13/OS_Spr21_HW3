@@ -24,5 +24,6 @@ typedef  struct  node node_t;
 
 void enqueue(int *obj, struct timeval* arrival_time);
 int* dequeue(struct timeval *arrival_time);
+int* rand_dequeue();
 
 #endif
